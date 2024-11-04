@@ -1,0 +1,585 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/yongminkim0501/DeepLearning/blob/main/HW1_SkeletonCode_Sigmoid%202layer%20model%20(forward%2C%20backward%20%EA%B5%AC%ED%98%84)\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 1,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "kKelMv2k5gNx",
+        "outputId": "4567f18e-bf73-4ae4-9707-3cc8727d8597"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Mounted at /content/drive\n"
+          ]
+        }
+      ],
+      "source": [
+        "from google.colab import drive\n",
+        "drive.mount(\"/content/drive\")"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 2,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "ObQrvnbB8hPZ",
+        "outputId": "8d081677-a22f-43c3-f290-c611607915bd"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "300\n"
+          ]
+        }
+      ],
+      "source": [
+        "# Read file \"hw1_data.tsv\"\n",
+        "file = open(\"/content/drive/MyDrive/hw_dataset/hw1_data.tsv\",'r')\n",
+        "ori_data = file.read().strip().split(\"\\n\")\n",
+        "data = []\n",
+        "for item in ori_data:\n",
+        "  item = item.split(\"\\t\")\n",
+        "  if len(item[0]) >0:\n",
+        "    data.append((item[0],item[1]))\n",
+        "print(len(data))"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 3,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "tSiVjnSKBlcK",
+        "outputId": "ac0642e0-5d60-4b24-af0b-2851fd751135"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "**************************************************\n",
+            "Total number of datasets\n",
+            "300\n",
+            "300\n",
+            "**************************************************\n"
+          ]
+        }
+      ],
+      "source": [
+        "### Training data pre-processing\n",
+        "texts, labels = [], []\n",
+        "label2idx = {\"0\":0, \"1\":1}\n",
+        "for i, item in enumerate(data):\n",
+        "  text = item[0]\n",
+        "\n",
+        "  ## Preprocessing (if you want to add, please add more)\n",
+        "  ################################################################################\n",
+        "  text = text.replace(\"  \",\" \") ## Replace double space\n",
+        "  text = text.replace(\",\", \"\") ## Replace comma to \"\"\n",
+        "  text = text.lower()  ## Lower cases\n",
+        "  ################################################################################\n",
+        "  label = label2idx[item[1]]\n",
+        "\n",
+        "  texts.append(text)\n",
+        "  labels.append(label)\n",
+        "\n",
+        "print(\"*\"*50)\n",
+        "print(\"Total number of datasets\")\n",
+        "print(len(texts))\n",
+        "print(len(labels))\n",
+        "print(\"*\"*50)\n",
+        "\n",
+        "\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 4,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "MZyzodaGovkH",
+        "outputId": "93c5a648-754d-4d73-9b62-b9437608d33d"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Train Dataset Examples\n",
+            "['speak for it while it forces you to ponder anew what a movie can be ', 'enables shafer to navigate spaces both large ... and small ... with considerable aplomb ', 'takes chances that are bold by studio standards ']\n",
+            "(0, 1, 1)\n",
+            "**************************************************\n",
+            "(0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0)\n",
+            "(0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1)\n"
+          ]
+        }
+      ],
+      "source": [
+        "#### Split into train/dev/test sets\n",
+        "from sklearn.model_selection import train_test_split\n",
+        "### Write a code for collecting samples for each class\n",
+        "################################################################################\n",
+        "pos,neg = [], []\n",
+        "train_texts, dev_texts, test_texts, train_labels, dev_labels, test_labels = [], [], [], [], [], []\n",
+        "for a,b in zip(texts,labels):\n",
+        "  if b == 1:\n",
+        "    pos.append((a,b))\n",
+        "  else:\n",
+        "    neg.append((a,b))\n",
+        "\n",
+        "for a,b in pos[:50]:\n",
+        "  test_texts.append(a)\n",
+        "  test_labels.append(b)\n",
+        "for a,b in neg[:50]:\n",
+        "  test_texts.append(a)\n",
+        "  test_labels.append(b)\n",
+        "\n",
+        "for a,b in pos[50:100]:\n",
+        "  dev_texts.append(a)\n",
+        "  dev_labels.append(b)\n",
+        "for a,b in neg[50:100]:\n",
+        "  dev_texts.append(a)\n",
+        "  dev_labels.append(b)\n",
+        "\n",
+        "for a,b in pos[100:]:\n",
+        "  train_texts.append(a)\n",
+        "  train_labels.append(b)\n",
+        "for a,b in neg[100:]:\n",
+        "  train_texts.append(a)\n",
+        "  train_labels.append(b)\n",
+        "################################################################################\n",
+        "\n",
+        "\n",
+        "tmp = list(zip(train_texts,train_labels))\n",
+        "import random\n",
+        "random.shuffle(tmp)\n",
+        "train_text, train_labels = zip(*tmp)\n",
+        "\n",
+        "tmp = list(zip(dev_texts,dev_labels))\n",
+        "import random\n",
+        "random.shuffle(tmp)\n",
+        "dev_texts, dev_labels = zip(*tmp)\n",
+        "\n",
+        "tmp = list(zip(test_texts,test_labels))\n",
+        "import random\n",
+        "random.shuffle(tmp)\n",
+        "test_texts, test_labels = zip(*tmp)\n",
+        "\n",
+        "print(\"Train Dataset Examples\")\n",
+        "print(train_texts[:3])\n",
+        "print(train_labels[:3])\n",
+        "print(\"*\"*50)\n",
+        "print(train_labels)\n",
+        "print(dev_labels)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 5,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "i4wmL0jRBw2_",
+        "outputId": "82fed4eb-aba2-48b1-fc80-fd61ec3c7b2d"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "{'<pad>': 0, '<unk>': 1, 'the': 2, 'and': 3, 'a': 4, 'to': 5, '.': 6, 'of': 7, 'it': 8, 'in': 9, 'that': 10, 'is': 11, \"'s\": 12, 'as': 13, 'for': 14, 'you': 15, 'with': 16, 'film': 17, 'one': 18, 'movie': 19, 'by': 20, 'this': 21, 'its': 22, '--': 23, '...': 24, 'have': 25, 'so': 26, 'good': 27, 'story': 28, 'most': 29, 'if': 30, \"n't\": 31, 'your': 32, 'time': 33, 'no': 34, 'more': 35, 'not': 36, 'be': 37, 'takes': 38, 'are': 39, 'way': 40, 'an': 41, 'little': 42, 'on': 43, 'about': 44, 'very': 45, '(': 46, ')': 47, 'own': 48, 'but': 49, 'i': 50, 'too': 51, 'can': 52, 'from': 53, 'some': 54, 'at': 55, '``': 56, 'picture': 57, 'or': 58, 'just': 59, 'worst': 60, 'when': 61, 'could': 62, 'his': 63, 'comedy': 64, 'what': 65, 'surprisingly': 66, 'does': 67, 'better': 68, 'old': 69, 'life': 70, 'into': 71, \"''\": 72, 'moments': 73, 'watching': 74, 'like': 75, 'recent': 76, 'all': 77, 'many': 78, 'their': 79, 'every': 80, 'hate': 81, 'men': 82, 'work': 83, 'completely': 84, 'small': 85, 'considerable': 86, 'aplomb': 87, 'sensitive': 88, 'ride': 89, 'talented': 90, 'poignant': 91, 'superb': 92, 'seems': 93, 'even': 94, 'may': 95, 'once': 96, 'epic': 97, 'derivative': 98, 'point': 99, 'worth': 100, 'part': 101, 'kind': 102, 'who': 103, 'has': 104, 'line': 105, 'charm': 106, 'late': 107, 'heart': 108, 'noir': 109, 'crime': 110, 'rock': 111, 'tribute': 112, 'uses': 113, 'sensational': 114, 'will': 115, 'laughs': 116, 'make': 117, 'well': 118, 'depth': 119, 'only': 120, 'fear': 121, 'whole': 122, 'mess': 123, 'feels': 124, 'seen': 125, 'horror': 126, 'he': 127, 'despite': 128, 'amounts': 129, 'digital': 130, 'dumb': 131, 'fun': 132, 'much': 133, 'romance': 134, 'was': 135, ':': 136, 'wildly': 137, 'step': 138, 'itself': 139, 'serves': 140, 'which': 141, 'unfortunately': 142, 'through': 143, 'awful': 144, 'look': 145, 'effects': 146, 'than': 147, 'two': 148, 'want': 149, 'new': 150, 'plot': 151, 'being': 152, 'again': 153, 'dialogue': 154, 'suspense': 155, 'pay': 156, 'outrageous': 157, 'cuteness': 158, 'enough': 159, 'attractive': 160, 'how': 161, 'special': 162, 'put': 163, 'sometimes': 164, 'beautiful': 165, 'sketchy': 166, 'makes': 167, 'together': 168, 'any': 169, 'watch': 170, 'family': 171, 'justify': 172, 'theatrical': 173, 'simulation': 174, 'death': 175, 'camp': 176, 'auschwitz': 177, 'ii-birkenau': 178, 'best': 179, 'silly': 180, 'history': 181, 'would': 182, 'cinematic': 183, 'young': 184, 'out': 185, 'scene': 186, 'flaws': 187, 'after': 188, 'minutes': 189, 'think': 190, 'almost': 191, 'conviction': 192, 'jason': 193, 'year': 194, 'speak': 195, 'while': 196, 'forces': 197, 'ponder': 198, 'anew': 199, 'enables': 200, 'shafer': 201, 'navigate': 202, 'spaces': 203, 'both': 204, 'large': 205, 'chances': 206, 'bold': 207, 'studio': 208, 'standards': 209, 'manages': 210, 'infuse': 211, 'rocky': 212, 'path': 213, 'sibling': 214, 'reconciliation': 215, 'flashes': 216, 'warmth': 217, 'gentle': 218, 'humor': 219, 'working': 220, 'script': 221, 'co-written': 222, 'gianni': 223, 'romoli': 224, 'ozpetek': 225, 'avoids': 226, 'pitfalls': 227, \"'d\": 228, 'expect': 229, 'such': 230, 'potentially': 231, 'sudsy': 232, 'set-up': 233, 'enjoy': 234, 'entirely': 235, 'persuasive': 236, 'give': 237, 'exposure': 238, 'performers': 239, 'leavened': 240, 'breathless': 241, 'anticipation': 242, 'significantly': 243, 'bewilderingly': 244, 'brilliant': 245, 'entertaining': 246, 'smooth': 247, 'professional': 248, 'technically': 249, 'positive': 250, 'change': 251, 'tone': 252, 'here': 253, 'recharged': 254, 'him': 255, 'pays': 256, 'earnest': 257, 'homage': 258, 'turntablists': 259, 'beat': 260, 'jugglers': 261, 'schoolers': 262, 'current': 263, 'innovators': 264, 'kinetic': 265, 'teeming': 266, 'cranky': 267, 'adults': 268, 'rediscover': 269, 'quivering': 270, 'kid': 271, 'inside': 272, 'laughable': 273, 'compulsively': 274, 'watchable': 275, 'merit': 276, '103-minute': 277, 'length': 278, 'value': 279, 'respect': 280, 'term': 281, 'cinema': 282, 'showing': 283, 'honest': 284, 'emotions': 285, 'comic': 286, 'gem': 287, 'delightful': 288, 'spare': 289, 'wildlife': 290, 'traditionally': 291, 'structured': 292, 'adventurous': 293, 'indian': 294, 'filmmakers': 295, 'toward': 296, 'crossover': 297, 'nonethnic': 298, 'markets': 299, 'price': 300, 'admission': 301, 'gory': 302, 'mayhem': 303, 'idea': 304, 'stylish': 305, 'exercise': 306, 'hold': 307, 'grips': 308, 'hard': 309, 'fascinating': 310, 'byways': 311, 'evanescent': 312, 'seamless': 313, 'sumptuous': 314, 'stream': 315, 'slick': 316, 'manufactured': 317, 'claim': 318, 'street': 319, 'credibility': 320, 'take': 321, 'care': 322, 'nicely': 323, 'performed': 324, 'quintet': 325, 'actresses': 326, 'valuable': 327, 'messages': 328, 'thanks': 329, 'lau': 330, 'elevated': 331, 'hugh': 332, 'grant': 333, 'arrive': 334, 'early': 335, 'stay': 336, 'pan-american': 337, 'genuine': 338, 'insight': 339, 'urban': 340, 'shot': 341, 'artful': 342, 'watery': 343, 'tones': 344, 'blue': 345, 'green': 346, 'brown': 347, 'unorthodox': 348, 'organized': 349, 'includes': 350, 'strangest': 351, 'acted': 352, 'diane': 353, 'lane': 354, 'richard': 355, 'gere': 356, 'admittedly': 357, 'middling': 358, 'fighting': 359, 'skills': 360, 'steven': 361, 'seagal': 362, 'rich': 363, 'full': 364, 'warm': 365, 'water': 366, 'under': 367, 'red': 368, 'bridge': 369, 'celebration': 370, 'feminine': 371, 'energy': 372, 'power': 373, 'women': 374, 'heal': 375, 'real-life': 376, '19th-century': 377, 'metaphor': 378, 'home': 379, 'leave': 380, 'wanting': 381, 'mention': 382, 'leaving': 383, 'smile': 384, 'face': 385, 'retains': 386, 'ambiguities': 387, 'added': 388, 'resonance': 389, 'thing': 390, 'dot': 391, 'com': 392, 'résumé': 393, 'loaded': 394, 'credits': 395, 'girl': 396, 'bar': 397, '#': 398, '3': 399, 'add': 400, 'beyond': 401, 'dark': 402, 'visions': 403, 'already': 404, 'relayed': 405, 'predecessors': 406, 'yes': 407, 'snail-like': 408, 'pacing': 409, 'extremely': 410, 'unpleasant': 411, 'affair': 412, 'true': 413, 'incredibly': 414, 'hokey': 415, 'things': 416, 'we': 417, \"'ve\": 418, 'before': 419, 'predictable': 420, 'tides': 421, 'unassuming': 422, 'subordinate': 423, 'dim': 424, 'vicious': 425, 'absurd': 426, 'because': 427, 'acts': 428, 'goofy': 429, 'dentist': 430, 'waiting': 431, 'room': 432, 'amazingly': 433, 'lame': 434, 'confessions': 435, 'straightforward': 436, 'bio': 437, 'disappointingly': 438, 'thin': 439, 'slice': 440, 'lower-class': 441, 'london': 442, ';': 443, 'title': 444, 'bogus': 445, 'ugly': 446, 'shabby': 447, 'photography': 448, 'understand': 449, 'difference': 450, 'between': 451, 'plain': 452, 'frida': 453, 'different': 454, 'hollywood': 455, 'produced': 456, 'jerry': 457, 'bruckheimer': 458, 'directed': 459, 'joel': 460, 'schumacher': 461, 'reflects': 462, 'shallow': 463, 'styles': 464, 'overproduced': 465, 'inadequately': 466, 'motivated': 467, 'demographically': 468, 'targeted': 469, 'please': 470, 'carnage': 471, 'degraded': 472, 'handheld': 473, 'blair': 474, 'witch': 475, 'video-cam': 476, 'footage': 477, 'second': 478, 'fiddle': 479, 'folly': 480, 'superficiality': 481, 'auto-critique': 482, 'clumsiness': 483, 'damning': 484, 'censure': 485, 'tedious': 486, 'norwegian': 487, 'offering': 488, 'somehow': 489, 'snagged': 490, 'oscar': 491, 'nomination': 492, 'esther': 493, 'kahn': 494, 'unusual': 495, 'also': 496, 'irritating': 497, 'halfway': 498, 'beginning': 499, 'setup': 500, 'easy': 501, 'borders': 502, 'facile': 503, 'thoroughly': 504, 'smeary': 505, 'blurry': 506, 'distraction': 507, 'guns': 508, 'cheatfully': 509, 'filmed': 510, 'martial': 511, 'arts': 512, 'disintegrating': 513, 'bloodsucker': 514, 'computer': 515, 'jagged': 516, 'camera': 517, 'moves': 518, 'breezy': 519, 'distracted': 520, 'rhythms': 521, 'guys': 522, 'desperately': 523, 'quentin': 524, 'tarantino': 525, 'they': 526, 'grow': 527, 'up': 528, 'conceptions': 529, 'essentially': 530, 'collection': 531, 'bits': 532, 'bode': 533, 'rest': 534, 'usual': 535, 'used': 536, 'my': 537, 'hours': 538, 'john': 539, 'malkovich': 540, 'scant': 541, 'ludicrous': 542, 'ultra-cheesy': 543, 'handsome': 544, 'unfulfilling': 545, 'drama': 546, 'either': 547, 'her': 548, 'charmless': 549, 'everything': 550, 'girls': 551, 'ca': 552, 'swim': 553, 'passages': 554, 'observation': 555, 'secondhand': 556, 'familiar': 557, 'involved': 558, 'save': 559, 'dash': 560, 'shows': 561, 'slightest': 562, 'aptitude': 563, 'acting': 564, 'lika': 565, 'da': 566, 'told': 567, 'scattered': 568, 'fashion': 569, 'easily': 570, 'wait': 571, 'per': 572, 'view': 573, 'dollar': 574, 'disney': 575, 'ransacks': 576, 'archives': 577, 'quick-buck': 578, 'sequel': 579, 'elvira': 580, 'fans': 581, 'hardly': 582, 'ask': 583, 'character': 584, 'dramas': 585, 'never': 586, 'reach': 587, 'satisfying': 588, 'conclusions': 589, 'extraordinary': 590, 'faith': 591, 'provide': 592, 'keenest': 593, 'pleasures': 594, 'remarkable': 595, 'procession': 596, 'sweeping': 597, 'pictures': 598, 'reinvigorated': 599, 'genre': 600, 'infectiously': 601, 'audacious': 602, 'proves': 603, 'lovely': 604, 'trifle': 605, 'love': 606, 'pleasant': 607, 'oozing': 608, 'reveals': 609, 'important': 610, 'our': 611, 'talents': 612, 'service': 613, 'others': 614, 'adaptation': 615, 'mid-to-low': 616, 'budget': 617, 'betrayed': 618, 'shoddy': 619, 'makeup': 620, 'effective': 621, 'stick': 622, 'trouble': 623, 'day': 624, 'preliminary': 625, 'notes': 626, 'science-fiction': 627, 'fragmentary': 628, 'narrative': 629, 'style': 630, 'piecing': 631, 'frustrating': 632, 'difficult': 633, 'altogether': 634, 'slight': 635, 'called': 636, 'masterpiece': 637, 'overbearing': 638, 'over-the-top': 639, 'those': 640, 'so-so': 641, 'films': 642, 'been': 643, 'classic': 644, 'casts': 645, 'actors': 646, 'magnificent': 647, 'landscape': 648, 'create': 649, 'feature': 650, 'wickedly': 651, 'harsh': 652, 'piece': 653, 'storytelling': 654, 'lively': 655, 'engaging': 656, 'examination': 657, 'similar': 658, 'obsessions': 659, 'dominate': 660, 'promise': 661, 'filmmaking': 662, 'workable': 663, 'primer': 664, 'region': 665, 'terrific': 666, '10th-grade': 667, 'learning': 668, 'tool': 669, 'able': 670, 'hit': 671, '15-year': 672, \"'re\": 673, 'over': 674, '100': 675, 'wide-awake': 676, 'bon': 677, 'bons': 678, 'delivers': 679, 'promises': 680, 'wild': 681, 'ensues': 682, 'brash': 683, 'set': 684, 'conquer': 685, 'online': 686, 'world': 687, 'laptops': 688, 'cell': 689, 'phones': 690, 'business': 691, 'plans': 692, 'final': 693, 'bring': 694, 'tissues': 695, 'direction': 696, 'fluid': 697, 'no-nonsense': 698, 'authority': 699, 'performances': 700, 'harris': 701, 'phifer': 702, 'cam': 703, '`': 704, 'ron': 705, 'seal': 706, 'deal': 707, 'woman': 708, 'great': 709, 'generosity': 710, 'diplomacy': 711, 'willing': 712, 'champion': 713, 'fallibility': 714, 'human': 715, 'there': 716, 'something': 717, 'artist': 718, '90-plus': 719, 'years': 720, 'taking': 721, 'effort': 722, 'share': 723, 'impressions': 724, 'loss': 725, 'art': 726, 'us': 727, 'underscore': 728, 'importance': 729, 'tradition': 730, 'familial': 731, 'community': 732, 'caruso': 733, 'descends': 734, 'sub-tarantino': 735, 'sure': 736, 'salton': 737, 'sea': 738, 'works': 739, 'should': 740, 'keeping': 741, 'tight': 742, 'nasty': 743, 'movies': 744, 'suck': 745, 'grievous': 746, 'big': 747, 'excuse': 748, 'play': 749, 'lewd': 750, 'another': 751, 'absolutely': 752, 'ridiculous': 753, 'collapse': 754, 'cobbled': 755, 'largely': 756, 'flat': 757, 'uncreative': 758, 'eats': 759, 'meddles': 760, 'argues': 761, 'kibbitzes': 762, 'fights': 763, 'laugh': 764, 'maybe': 765, 'twice': 766, 'forgotten': 767, 'get': 768, 'back': 769, 'car': 770, 'parking': 771, 'lot': 772, 'plodding': 773, 'well-thought': 774, 'stunts': 775, 'problem': 776, 'whether': 777, 'these': 778, 'ambitions': 779, 'laudable': 780, 'themselves': 781, 'lost': 782, 'translation': 783, 'interesting': 784, 'color': 785, 'rather': 786, 'do': 787, 'concert': 788, 'overlong': 789, 'bombastic': 790, 'inane': 791, 'spears': 792, \"'\": 793, 'music': 794, 'videos': 795, 'content': 796, 'except': 797, 'goes': 798, 'least': 799, '90': 800, 'worse': 801, 'see': 802, 'tasteful': 803, 'roll': 804, 'challenges': 805, 'poses': 806, 'forgive': 807, 'black': 808, 'ii': 809, 'achieves': 810, 'ultimate': 811, 'insignificance': 812, 'sci-fi': 813, 'spectacle': 814, 'whiffle-ball': 815, 'vainly': 816, 'compelling': 817, 'lacking': 818, 'surprise': 819, 'consistent': 820, 'emotional': 821, 'nicks': 822, 'steinberg': 823, 'match': 824, 'creations': 825, 'pure': 826, 'venality': 827, 'giving': 828, 'college': 829, 'try': 830, 'passable': 831, 'date': 832, 'respectable': 833, 'unpretentious': 834, 'charming': 835, 'quirky': 836, 'original': 837, 'brings': 838, 'proper': 839, 'role': 840, 'bourne': 841, 'hawaiian': 842, 'shirt': 843, 'believe': 844, 'actually': 845, 'backseat': 846, 'pokes': 847, 'provokes': 848, 'expressionistic': 849, 'license': 850, 'supremely': 851, 'unfunny': 852, 'unentertaining': 853, 'middle-age': 854, 'yet': 855, 'grating': 856, 'showcase': 857, 'uneven': 858, 'conclusive': 859, 'answers': 860, 'digital-effects-heavy': 861, 'supposed': 862, 'family-friendly': 863, 'unpredictable': 864, 'realistic': 865, 'portrayal': 866, 'hopeless': 867, 'dog': 868, 'trying': 869, 'grab': 870, 'lump': 871, 'play-doh': 872, 'harder': 873, 'liman': 874, 'tries': 875, 'squeeze': 876, 'ingenious': 877, 'runs': 878, 'mere': 879, '84': 880, 'glance': 881, 'gender-bending': 882, 'generally': 883, 'quite': 884, 'funny': 885, 'clumsy': 886, 'heavy-handed': 887, 'phoney-feeling': 888, 'sentiment': 889, 'starts': 890, 'off': 891, 'bad': 892, 'feel': 893, 'running': 894, 'screaming': 895, 'addition': 896, 'sporting': 897, 'titles': 898, 'irritates': 899, 'liked': 900, 'had': 901, 'gone': 902, 'further': 903, 'well-written': 904, 'well-acted': 905, 'build': 906, 'robots': 907, 'haul': 908, \"'em\": 909, 'theater': 910, 'show': 911, 'mystery': 912, 'science': 913, 'theatre': 914, '3000': 915, 'certainly': 916, 'going': 917, 'go': 918, 'down': 919, 'killer': 920, 'website': 921, 'other': 922, 'imax': 923, 'short': 924, 'welcome': 925, 'relief': 926, 'hammily': 927, 'tear': 928, 'eyes': 929, 'away': 930, 'images': 931, 'long': 932, 'read': 933, 'subtitles': 934}\n",
+            "935\n"
+          ]
+        }
+      ],
+      "source": [
+        "## Construct a vocabulary\n",
+        "from collections import Counter\n",
+        "\n",
+        "all_words = []\n",
+        "for item in train_texts:\n",
+        "  all_words += item.split()\n",
+        "for item in dev_texts:\n",
+        "  all_words += item.split()\n",
+        "\n",
+        "## Build a dictionary that maps words to integers\n",
+        "counts = Counter(all_words)\n",
+        "vocab = sorted(counts, key=counts.get, reverse=True)\n",
+        "vocab_to_int = {'<pad>':0, \"<unk>\":1}\n",
+        "vocab_to_int.update({word: ii for ii, word in enumerate(vocab,2)})\n",
+        "print(vocab_to_int)\n",
+        "print(len(vocab_to_int))"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 6,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "GJ0RsEBgqidq",
+        "outputId": "bb2ee0b8-18c4-4719-a555-4925dd5fa6a4"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Train Dataset Encode Examples\n",
+            "[195  14   8 196   8 197  15   5 198 199  65   4  19  52  37   0   0   0\n",
+            "   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0\n",
+            "   0   0   0   0   0   0   0   0   0   0   0   0   0   0] 0\n",
+            "[200 201   5 202 203 204 205  24   3  85  24  16  86  87   0   0   0   0\n",
+            "   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0\n",
+            "   0   0   0   0   0   0   0   0   0   0   0   0   0   0] 1\n",
+            "[ 38 206  10  39 207  20 208 209   0   0   0   0   0   0   0   0   0   0\n",
+            "   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0\n",
+            "   0   0   0   0   0   0   0   0   0   0   0   0   0   0] 1\n"
+          ]
+        }
+      ],
+      "source": [
+        "import numpy as np\n",
+        "\n",
+        "# 주어진 문장을 인코딩하는 함수\n",
+        "def encode_sentence(sentence):\n",
+        "    max_length = 50  # 최대 길이를 50으로 설정\n",
+        "    input_ids = []   # 인코딩된 문자를 저장할 리스트\n",
+        "\n",
+        "    # 문장을 단어로 분리하여 각 단어를 인코딩\n",
+        "    for item in sentence.split():\n",
+        "        if item in vocab_to_int:\n",
+        "            input_ids.append(vocab_to_int[item])  # 단어를 인덱스로 변환하여 리스트에 추가\n",
+        "        else:\n",
+        "            input_ids.append(vocab_to_int['<unk>'])  # 단어가 사전에 없으면 '<unk>' 토큰 사용\n",
+        "\n",
+        "    # 남은 공간을 '<pad>' 토큰으로 채우기\n",
+        "    padding_length = max_length - len(input_ids)\n",
+        "    input_ids += [vocab_to_int['<pad>']] * padding_length\n",
+        "\n",
+        "    return np.array(input_ids)  # numpy 배열로 변환하여 반환\n",
+        "\n",
+        "# 레이블을 인코딩하는 함수 (여기서는 단순히 배열로 변환)\n",
+        "def encode_label(label):\n",
+        "    return np.array(label)\n",
+        "\n",
+        "print(\"Train Dataset Encode Examples\")\n",
+        "\n",
+        "# 첫 3개의 텍스트와 레이블을 인코딩하여 출력\n",
+        "for a, b in zip(train_texts[:3], train_labels[:3]):\n",
+        "    print(encode_sentence(a), b)\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 68,
+      "metadata": {
+        "id": "-76p4FBbAqLp"
+      },
+      "outputs": [],
+      "source": [
+        "import numpy as np\n",
+        "from sklearn.metrics import accuracy_score\n",
+        "\n",
+        "class SimpleNN:\n",
+        "    def __init__(self, vocab_size, embedding_dim, hidden_size, output_size):\n",
+        "        # Initialize weights and biases\n",
+        "        self.embedding_weights = np.random.rand(vocab_size, embedding_dim) # Embedding weights\n",
+        "        # limit = np.sqrt(6 / (embedding_dim + hidden_size))\n",
+        "        # self.W1 = np.random.uniform(-limit, limit, size=(embedding_dim, hidden_size))\n",
+        "        # limit = np.sqrt(6/ (hidden_size+output_size))\n",
+        "        # self.W2 = np.random.uniform(-limit, limit, size=(hidden_size, output_size))\n",
+        "        self.W1 = np.random.rand(embedding_dim, hidden_size)   # Input to hidden weights\n",
+        "        self.W2 = np.random.rand(hidden_size, output_size) # Hidden to output weights\n",
+        "        self.b1 = np.zeros((1, hidden_size))  # Hidden layer biases\n",
+        "        self.b2 = np.zeros((1, output_size))  # Output layer biases\n",
+        "        self.X = None\n",
+        "\n",
+        "    def sigmoid(self, z):\n",
+        "        return 1 / (1 + np.exp(-z))\n",
+        "\n",
+        "    def sigmoid_derivative(self, z):\n",
+        "        return z * (1 - z)\n",
+        "\n",
+        "    # def relu(self, z):\n",
+        "    #     return np.maximum(0, z)\n",
+        "\n",
+        "    # def relu_derivative(self, z):\n",
+        "    #     return (z > 0).astype(float)\n",
+        "\n",
+        "    # def tanh(self, z):\n",
+        "    #     return np.tanh(z)\n",
+        "\n",
+        "    # def tanh_derivative(self, z):\n",
+        "    #     return 1 - np.tanh(z) ** 2\n",
+        "\n",
+        "    def forward(self, X):\n",
+        "        # Forward pass\n",
+        "        ##############################################################################\n",
+        "        X = X.reshape(1,-1)\n",
+        "        x_mean = np.mean(X, axis=1, keepdims=True)\n",
+        "\n",
+        "        X = np.pad(X, ((0,0),(0,50)), 'constant', constant_values=0)\n",
+        "        X[:,-50:] = x_mean\n",
+        "\n",
+        "        z1 = np.dot(X, self.W1) + self.b1\n",
+        "        a1 = self.sigmoid(z1)\n",
+        "\n",
+        "        z2 = np.dot(a1, self.W2) + self.b2\n",
+        "        output = self.sigmoid(z2)\n",
+        "\n",
+        "        # 로그 계산 오류 방지를 위한 값 조정\n",
+        "        epsilon = 1e-15\n",
+        "        output = np.clip(output, epsilon, 1 - epsilon)\n",
+        "        ##############################################################################\n",
+        "\n",
+        "        return output\n",
+        "    def compute_loss(self, y, output):\n",
+        "        # Compute binary cross-entropy loss\n",
+        "        return -np.sum(y * np.log(output) + (1 - y) * np.log(1 - output))\n",
+        "\n",
+        "\n",
+        "    def backward(self, X, y, output, learning_rate=0.01):\n",
+        "    ##############################################################################\n",
+        "      X = X.reshape(1, -1)\n",
+        "      x_mean = np.mean(X, axis=1, keepdims=True)\n",
+        "\n",
+        "      X_padded = np.pad(X, ((0, 0), (0, 50)), 'constant', constant_values=0)\n",
+        "      X_padded[:, -50:] = x_mean\n",
+        "\n",
+        "      output_err = output - y\n",
+        "      gradient_output = output_err * self.sigmoid_derivative(output)\n",
+        "\n",
+        "      hidden_err = np.dot(gradient_output, self.W2.T)\n",
+        "      z1 = np.dot(X_padded, self.W1) + self.b1\n",
+        "      gradient_hidden = hidden_err * self.sigmoid_derivative(self.sigmoid(z1))\n",
+        "\n",
+        "      self.W2 = self.W2 - learning_rate * np.dot(self.sigmoid(z1).T, gradient_output)\n",
+        "      self.b2 = self.b2 - learning_rate * np.sum(gradient_output, axis=0, keepdims=True)\n",
+        "      self.W1 = self.W1 - learning_rate * np.dot(X_padded.T, gradient_hidden)  # X_padded 사용\n",
+        "      self.b1 = self.b1 - learning_rate * np.sum(gradient_hidden, axis=0, keepdims=True)\n",
+        "      # print(\"Gradient W1:\", np.mean(np.abs(gradient_hidden)))\n",
+        "      # print(\"Gradient W2:\", np.mean(np.abs(gradient_output)))\n",
+        "    ##############################################################################\n",
+        "\n",
+        "\n",
+        "\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 69,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "dBBBnxduXd_u",
+        "outputId": "d241a397-c8b8-4fe4-c36c-afe015257f4e"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "0 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "1 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "2 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "3 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "4 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "5 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "6 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "7 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "8 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "9 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "10 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "11 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "12 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "13 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "14 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "15 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "16 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "17 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "18 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "19 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "20 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "21 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "22 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "23 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "24 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "25 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "26 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "27 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "28 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "29 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "30 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "31 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "32 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "33 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "34 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "35 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "36 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "37 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "38 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "39 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "40 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "41 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "42 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "43 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "44 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "45 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "46 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "47 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "48 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "49 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "50 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "51 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "52 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "53 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "54 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "55 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "56 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "57 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "58 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "59 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "60 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "61 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "62 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "63 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "64 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "65 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "66 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "67 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "68 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "69 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "70 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "71 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "72 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "73 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "74 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "75 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "76 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "77 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "78 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "79 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "80 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "81 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "82 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "83 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "84 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "85 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "86 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "87 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "88 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "89 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "90 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "91 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "92 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "93 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "94 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "95 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "96 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "97 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "98 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n",
+            "99 epoch, train_loss = 17.2698, train_acc: 50.00%, eval_loss: 17.2698, eval_acc: 50.00%\n"
+          ]
+        }
+      ],
+      "source": [
+        "import numpy as np\n",
+        "from sklearn.metrics import accuracy_score, f1_score\n",
+        "\n",
+        "def train(X, y, learning_rate=0.01):\n",
+        "    output = nn.forward(X)  # Forward pass\n",
+        "    loss = nn.compute_loss(y, output)  # Compute loss\n",
+        "    nn.backward(X, y, output, learning_rate)  # Backward pass\n",
+        "    return loss\n",
+        "\n",
+        "def predict(x):\n",
+        "    output = nn.forward(x)\n",
+        "    return output, (output > 0.5).astype(int)  # Binary classification\n",
+        "\n",
+        "# Initialize the neural network\n",
+        "vocab_size = len(vocab_to_int)  # Number of unique words in vocab\n",
+        "embedding_dim = 100  # Embedding dimension\n",
+        "hidden_size = 80  # Number of neurons in the hidden layer\n",
+        "output_size = 1  # One output (binary classification)\n",
+        "learning_rate = 0.01\n",
+        "nn = SimpleNN(vocab_size, embedding_dim, hidden_size, output_size)\n",
+        "\n",
+        "true, pred = [], []\n",
+        "epochs = 100\n",
+        "for epoch in range(epochs):\n",
+        "    train_loss = 0.0\n",
+        "    true, pred = [], []  # Reset true and predicted labels for each epoch\n",
+        "    for x, y in zip(train_texts, train_labels):\n",
+        "        x = encode_sentence(x)  # Encode sentence as word indices\n",
+        "        train_loss += train(x, y, learning_rate)  # Train on the current sample\n",
+        "        _, prediction = predict(x)  # obtain prediction\n",
+        "        true.append(y)  # Append true label\n",
+        "        pred.append(prediction[0][0])  # Append predicted label (extract scalar)\n",
+        "\n",
+        "    # Calculate training accuracy\n",
+        "    train_acc = accuracy_score(true, pred) * 100.0\n",
+        "    train_loss /= len(train_texts)  # Average training loss\n",
+        "\n",
+        "    # Evaluate on dev set\n",
+        "    dev_true, dev_pred = [], []\n",
+        "    dev_loss = 0.0\n",
+        "    for x, y in zip(dev_texts, dev_labels):\n",
+        "        x = encode_sentence(x)\n",
+        "\n",
+        "        output, prediction = predict(x)\n",
+        "        dev_loss += nn.compute_loss(y,output)\n",
+        "        dev_true.append(y)\n",
+        "        dev_pred.append(prediction[0][0])\n",
+        "    dev_loss /= len(dev_texts)\n",
+        "    dev_acc = accuracy_score(dev_true, dev_pred) * 100.0\n",
+        "    print(f'{epoch} epoch, train_loss = {train_loss:.4f}, train_acc: {train_acc:.2f}%, eval_loss: {dev_loss:.4f}, eval_acc: {dev_acc:.2f}%')\n"
+      ]
+    }
+  ],
+  "metadata": {
+    "accelerator": "GPU",
+    "colab": {
+      "gpuType": "T4",
+      "provenance": [],
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "display_name": "Python 3",
+      "name": "python3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 0
+}
